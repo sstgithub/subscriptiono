@@ -1,0 +1,39 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Uid number:</strong>
+  <%= @message.uid_number %>
+</p>
+
+<p>
+  <strong>Category:</strong>
+  <%= @message.category %>
+</p>
+
+<p>
+  <strong>Received at:</strong>
+  <%= @message.received_at %>
+</p>
+
+<p>
+  <strong>Body:</strong>
+  <%= @message.body %>
+</p>
+
+<p>
+  <strong>Subject:</strong>
+  <%= @message.subject %>
+</p>
+
+<p>
+  <strong>Extracted datetime:</strong>
+  <%= @message.extracted_datetime %>
+</p>
+
+<p>
+  <strong>Sender email:</strong>
+  <%= @message.sender_email %>
+</p>
+
+<%= link_to 'Edit', edit_message_path(@message) %> |
+<%= link_to 'Back', messages_path %>

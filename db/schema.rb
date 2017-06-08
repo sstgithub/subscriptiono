@@ -10,10 +10,32 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170516040329) do
+ActiveRecord::Schema.define(version: 20170606050958) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "folders", force: :cascade do |t|
+    t.bigint "user_id"
+    t.string "name"
+    t.string "uid_validity_number"
+    t.bigint "last_highest_uid_number", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_folders_on_user_id"
+  end
+
+  create_table "messages", force: :cascade do |t|
+    t.bigint "uid_number"
+    t.string "category"
+    t.datetime "received_at"
+    t.text "body"
+    t.string "subject"
+    t.datetime "extracted_datetime"
+    t.string "sender_email"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
@@ -32,6 +54,7 @@ ActiveRecord::Schema.define(version: 20170516040329) do
     t.string "uid"
     t.string "token"
     t.string "refresh_token"
+    t.bigint "token_expires_at"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end

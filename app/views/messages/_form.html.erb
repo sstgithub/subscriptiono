@@ -1,0 +1,52 @@
+<%= form_with(model: message, local: true) do |form| %>
+  <% if message.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(message.errors.count, "error") %> prohibited this message from being saved:</h2>
+
+      <ul>
+      <% message.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :uid_number %>
+    <%= form.text_field :uid_number, id: :message_uid_number %>
+  </div>
+
+  <div class="field">
+    <%= form.label :category %>
+    <%= form.text_field :category, id: :message_category %>
+  </div>
+
+  <div class="field">
+    <%= form.label :received_at %>
+    <%= form.datetime_select :received_at, id: :message_received_at %>
+  </div>
+
+  <div class="field">
+    <%= form.label :body %>
+    <%= form.text_area :body, id: :message_body %>
+  </div>
+
+  <div class="field">
+    <%= form.label :subject %>
+    <%= form.text_field :subject, id: :message_subject %>
+  </div>
+
+  <div class="field">
+    <%= form.label :extracted_datetime %>
+    <%= form.datetime_select :extracted_datetime, id: :message_extracted_datetime %>
+  </div>
+
+  <div class="field">
+    <%= form.label :sender_email %>
+    <%= form.text_field :sender_email, id: :message_sender_email %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+<% end %>

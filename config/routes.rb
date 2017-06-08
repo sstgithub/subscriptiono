@@ -4,4 +4,6 @@ Rails.application.routes.draw do
   get "dashboard#index", to: "users/dashboard#index"
 
   root "users/dashboard#index"
+
+  resources :messages
 end
