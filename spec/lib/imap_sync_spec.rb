@@ -6,18 +6,15 @@ RSpec.describe "ImapSync" do
     Timecop.freeze(Time.now)
     @user = create(:user, email: "exampleuser@gmail.com", token_expires_at: (Time.now + 1.day).to_i)
   end
+
   it 'refreshes user token if it has expired' do
     one_hour_ago = (Time.now - 1.hour).to_i
     user = create(:user, token_expires_at: one_hour_ago)
     net_imap_init_and_auth
 
-    expect(user.token_expires_at).to eq(one_hour_ago)
-
-    stub_request(:post, "https://www.googleapis.com/oauth2/v4/token").to_return(body: '{"access_token": "123", "expires_in": "3600"}', headers: {"content-type": "application/json"})
+    expect(user).to receive(:refresh_user_token)
 
     ImapSync.new(user)
-
-    expect(user.token_expires_at).to eq(Time.now.to_i + 3600)
   end
 
   it 'does not refresh user token if it has not expired' do
@@ -25,11 +22,9 @@ RSpec.describe "ImapSync" do
     user = create(:user, token_expires_at: one_hour_from_now)
     net_imap_init_and_auth
 
-    expect(user.token_expires_at).to eq(one_hour_from_now)
+    expect(user).not_to receive(:refresh_user_token)
 
     ImapSync.new(user)
-
-    expect(user.token_expires_at).to eq(one_hour_from_now)
   end
   describe 'examine folder' do
     before do
