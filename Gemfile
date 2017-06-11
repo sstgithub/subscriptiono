@@ -40,6 +40,8 @@ group :development, :test do
   gem 'pry-byebug'
   gem 'rspec-rails', '~> 3.5'
   gem 'factory_girl_rails'
+  gem 'timecop'
+  gem 'webmock'
 end
 
 group :development do
@@ -60,3 +62,5 @@ gem 'gmail_xoauth'
 gem 'devise'
 
 gem 'figaro'
+
+gem 'httparty'

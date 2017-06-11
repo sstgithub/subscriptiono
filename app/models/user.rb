@@ -15,6 +15,7 @@ class User < ApplicationRecord
      end
      user.token = auth.credentials.token
      user.refresh_token = auth.credentials.refresh_token
+     user.token_expires_at = auth.credentials.expires_at #integer
      user.save
      user
    end
@@ -26,7 +27,7 @@ class User < ApplicationRecord
        refresh_token: self.refresh_token,
        grant_type: "refresh_token"
      }
-     response = HTTParty.post("https://www.googleapis.com/oauth2/v4/token", options)
+     response = HTTParty.post("https://www.googleapis.com/oauth2/v4/token", body: options)
      refreshed_access_token = response.parsed_response['access_token']
      expiration_time = Time.now.to_i + response.parsed_response['expires_in'].to_i
      self.update(token: refreshed_access_token, token_expires_at: expiration_time)

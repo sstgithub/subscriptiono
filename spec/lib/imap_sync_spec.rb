@@ -9,33 +9,27 @@ RSpec.describe "ImapSync" do
     Timecop.freeze(Time.now)
     one_hour_ago = (Time.now - 1.hour).to_i
     user = create(:user, token_expires_at: one_hour_ago)
-    imap = double("imap", responses: {"UIDVALIDITY" => [321]})
-    net_imap_init_and_auth(imap)
+    net_imap_init_and_auth
 
     expect(user.token_expires_at).to eq(one_hour_ago)
-    #TODO: use vcr for this
-    response = double("response", parsed_response: {'access_token': "123", 'expires_in': "3600"})
-    expect(HTTParty).to receive(:post).and_return(response)
+
+    stub_request(:post, "https://www.googleapis.com/oauth2/v4/token").to_return(body: '{"access_token": "123", "expires_in": "3600"}', headers: {"content-type": "application/json"})
 
     ImapSync.new(user)
 
-    #TODO: check exact time by using timecop and freeze time before initializing
-    expect(user.token_expires_at).not_to eq(one_hour_ago)
+    expect(user.token_expires_at).to eq(Time.now.to_i + 3600)
   end
 
   it 'does not refresh user token if it has not expired' do
     Timecop.freeze(Time.now)
     one_hour_from_now = (Time.now + 1.hour).to_i
     user = create(:user, token_expires_at: one_hour_from_now)
-    imap = double("imap", responses: {"UIDVALIDITY" => [321]})
-    net_imap_init_and_auth(imap)
+    net_imap_init_and_auth
 
     expect(user.token_expires_at).to eq(one_hour_from_now)
-    expect(HTTParty).not_to receive(:post)
 
     ImapSync.new(user)
 
-    #TODO: check exact time by using timecop and freeze time before initializing
     expect(user.token_expires_at).to eq(one_hour_from_now)
   end
   describe '{for previously run on folder} get only the latest messages in folder for search term from when the job last ran on that folder' do
