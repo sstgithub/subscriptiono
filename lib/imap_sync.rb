@@ -5,25 +5,12 @@ class ImapSync
   #fastmail max is 8 bytes but gmail max is 4 so go with 4 (normal int in PG)
   MAX_INT = 2147483647
 
-  def refresh_token
-    options = {
-      client_id: ENV["GOOGLE_CLIENT_ID"],
-      client_secret: ENV["GOOGLE_CLIENT_SECRET"],
-      refresh_token: @user.refresh_token,
-      grant_type: "refresh_token"
-    }
-    response = HTTParty.post("https://www.googleapis.com/oauth2/v4/token", options)
-    refreshed_access_token = response.parsed_response['access_token']
-    expiration_time = Time.now.to_i + response.parsed_response['expires_in'].to_i
-    @user.update(token: refreshed_access_token, token_expires_at: expiration_time)
-  end
-
   def initialize(user)
     @user = user
     @imap = Net::IMAP.new("imap.gmail.com", 993, usessl = true, certs = nil, verify = false)
-    #refresh everytime so always have maximum time to complete sync?
+    #TODO: refresh everytime so always have maximum time to complete sync? Currently could start job with only seconds left before expiration and dont know exactly how long the job will take.
     if @user.token_expires_at < Time.now.to_i
-      refresh_token
+      @user.refresh_user_token
     end
     @imap.authenticate("XOAUTH2", @user.email, @user.token)
     @imap_folders = @imap.list("", "*")

@@ -2,9 +2,44 @@ require 'rails_helper'
 require 'imap_sync'
 
 RSpec.describe "ImapSync" do
+  before do
+    @user = create(:user, email: "exampleuser@gmail.com", token_expires_at: (Time.now + 1.day).to_i)
+  end
+  it 'refreshes user token if it has expired' do
+    Timecop.freeze(Time.now)
+    one_hour_ago = (Time.now - 1.hour).to_i
+    user = create(:user, token_expires_at: one_hour_ago)
+    imap = double("imap", responses: {"UIDVALIDITY" => [321]})
+    net_imap_init_and_auth(imap)
+
+    expect(user.token_expires_at).to eq(one_hour_ago)
+    #TODO: use vcr for this
+    response = double("response", parsed_response: {'access_token': "123", 'expires_in': "3600"})
+    expect(HTTParty).to receive(:post).and_return(response)
+
+    ImapSync.new(user)
+
+    #TODO: check exact time by using timecop and freeze time before initializing
+    expect(user.token_expires_at).not_to eq(one_hour_ago)
+  end
+
+  it 'does not refresh user token if it has not expired' do
+    Timecop.freeze(Time.now)
+    one_hour_from_now = (Time.now + 1.hour).to_i
+    user = create(:user, token_expires_at: one_hour_from_now)
+    imap = double("imap", responses: {"UIDVALIDITY" => [321]})
+    net_imap_init_and_auth(imap)
+
+    expect(user.token_expires_at).to eq(one_hour_from_now)
+    expect(HTTParty).not_to receive(:post)
+
+    ImapSync.new(user)
+
+    #TODO: check exact time by using timecop and freeze time before initializing
+    expect(user.token_expires_at).to eq(one_hour_from_now)
+  end
   describe '{for previously run on folder} get only the latest messages in folder for search term from when the job last ran on that folder' do
     before do
-      @user = create(:user, token_expires_at: (Time.now + 1.day).to_i)
       create(:folder, name: "test folder", uid_validity_number: "123", user: @user)
     end
 
@@ -75,7 +110,24 @@ RSpec.describe "ImapSync" do
   end
 
   describe "categorize and save message" do
+    before do
+      @mail = Mail.new(from: "sender@sendermail.com", date: (Time.now - 1.hour))
+    end
     it 'can extract category (datetime or sale keyword) from subject' do
+      # imap_fetched_message = ...
+      # mail = Mail.read_from_string()...
+      #
+      # expect(Message).to receive(:create).with()
+      #
+      # imap_sync = ImapSync.new(@user)
+      # imap_sync.categorize_and_save_message(Mail.new(), 55)
+
+
+      #TODO: easiest way for now, but later more comprehensive mock class for this mail class?
+      #TODO: make sure types are correct
+      # mail = double("mail", decoded: "", date: (Time.now - 1.hour).to_i, )
+      # @mail.subject = "Only 3 hours left!"
+
 
     end
 
@@ -84,8 +136,14 @@ RSpec.describe "ImapSync" do
     end
 
 
-    it 'should categorize message as an offer if there is a date/time in subject' do
+    it 'should categorize message as an offer and extract datetime if there is a date/time in subject' do
+      @mail.subject = "Only 3 hours left!"
+      net_imap_init_and_auth
+      expect(Message).to receive(:create_with).with(category: "offer")
 
+      imap_sync = ImapSync.new(@user)
+      
+      imap_sync.categorize_and_save_message(@mail, 51)
     end
 
     it 'should categorize message as an offer if there is a %/$ off keyword in subject' do
@@ -102,7 +160,7 @@ RSpec.describe "ImapSync" do
 
   end
 
-  def net_imap_init_and_auth(imap)
+  def net_imap_init_and_auth(imap = double("imap"))
     allow(Net::IMAP).to receive(:new).and_return(imap)
     allow(imap).to receive(:authenticate)
     imap_folders = [{name: "INBOX"}, {name: "ALL MAIL"}]
