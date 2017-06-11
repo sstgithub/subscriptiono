@@ -1,6 +1,7 @@
 class ImapSync
   require 'net/imap'
   require 'mail'
+  require 'chronic'
 
   #fastmail max is 8 bytes but gmail max is 4 so go with 4 (normal int in PG)
   MAX_INT = 2147483647
@@ -57,12 +58,13 @@ class ImapSync
           raise e
         end
       end
-      time_received = Time.at(mail.date.to_i)
+      # time_received = Time.at(mail.date.to_i)
+      time_received = mail.date #mail date is already Time object
       category, relevant_datetime = get_category_and_relevant_datetime(mail.from, mail.subject, decoded_body.downcase, time_received)
 
-      #mail.date is a DateTime object; relevant_datetime is a string
-
-      Message.create_with(category: category, received_at: time_received, body: decoded_body, subject: mail.subject, extracted_datetime: relevant_datetime, sender_email: mail.from).find_or_create_by(uid_number: uid_number)
+      message = Message.where(uid_number: uid_number).first_or_create
+      #relevant_datetime is a Time object converted to DateTime UTC by Rails before saving to PG
+      message.update(category: category, received_at: time_received, body: decoded_body, subject: mail.subject, extracted_datetime: relevant_datetime, sender_email: mail.from)
 
       last_highest_uid_number = uid_number
   end
@@ -108,7 +110,7 @@ class ImapSync
     hits = body.scan(/(ends at|expires at|valid through) (.*?)(,)/)
     if !hits.blank?
       #parse extracted time based on when messaged was received
-      Chronic.parse(hits.first.last, now: time_received, context: :future)
+      Chronic.parse(hits.first[1], now: time_received, context: :future) #Time obj
     end
   end
 end

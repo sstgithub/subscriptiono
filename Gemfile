@@ -64,3 +64,5 @@ gem 'devise'
 gem 'figaro'
 
 gem 'httparty'
+
+gem 'chronic'

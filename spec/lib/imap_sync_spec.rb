@@ -3,10 +3,10 @@ require 'imap_sync'
 
 RSpec.describe "ImapSync" do
   before do
+    Timecop.freeze(Time.now)
     @user = create(:user, email: "exampleuser@gmail.com", token_expires_at: (Time.now + 1.day).to_i)
   end
   it 'refreshes user token if it has expired' do
-    Timecop.freeze(Time.now)
     one_hour_ago = (Time.now - 1.hour).to_i
     user = create(:user, token_expires_at: one_hour_ago)
     net_imap_init_and_auth
@@ -21,7 +21,6 @@ RSpec.describe "ImapSync" do
   end
 
   it 'does not refresh user token if it has not expired' do
-    Timecop.freeze(Time.now)
     one_hour_from_now = (Time.now + 1.hour).to_i
     user = create(:user, token_expires_at: one_hour_from_now)
     net_imap_init_and_auth
@@ -32,7 +31,7 @@ RSpec.describe "ImapSync" do
 
     expect(user.token_expires_at).to eq(one_hour_from_now)
   end
-  describe '{for previously run on folder} get only the latest messages in folder for search term from when the job last ran on that folder' do
+  describe 'examine folder' do
     before do
       create(:folder, name: "test folder", uid_validity_number: "123", user: @user)
     end
@@ -105,51 +104,66 @@ RSpec.describe "ImapSync" do
 
   describe "categorize and save message" do
     before do
-      @mail = Mail.new(from: "sender@sendermail.com", date: (Time.now - 1.hour))
-    end
-    it 'can extract category (datetime or sale keyword) from subject' do
-      # imap_fetched_message = ...
-      # mail = Mail.read_from_string()...
-      #
-      # expect(Message).to receive(:create).with()
-      #
-      # imap_sync = ImapSync.new(@user)
-      # imap_sync.categorize_and_save_message(Mail.new(), 55)
-
-
-      #TODO: easiest way for now, but later more comprehensive mock class for this mail class?
-      #TODO: make sure types are correct
-      # mail = double("mail", decoded: "", date: (Time.now - 1.hour).to_i, )
-      # @mail.subject = "Only 3 hours left!"
-
-
+      @mail = Mail.new(from: "sender@sendermail.com", date: Time.now)
     end
 
-    it 'can extract category (datetime or sale keyword) from body' do
-
-    end
-
-
-    it 'should categorize message as an offer and extract datetime if there is a date/time in subject' do
-      @mail.subject = "Only 3 hours left!"
+    it 'as an offer if there is a %/$ off keyword in subject' do
+      @mail.subject = "$100 off iPads"
+      @mail.body = "Nothing to see here"
       net_imap_init_and_auth
-      expect(Message).to receive(:create_with).with(category: "offer")
+      create(:message, uid_number: 51)
 
       imap_sync = ImapSync.new(@user)
-      
       imap_sync.categorize_and_save_message(@mail, 51)
+
+      message = Message.find_by_uid_number(51)
+
+      expect(message.category).to eq("Offer")
     end
 
-    it 'should categorize message as an offer if there is a %/$ off keyword in subject' do
+    it 'as an offer with datetime if there is a date/time in subject' do
+      @mail.subject = "Only 3 hours left!"
+      @mail.body = "Nothing to see here"
+      net_imap_init_and_auth
+      create(:message, uid_number: 51)
 
+      imap_sync = ImapSync.new(@user)
+      imap_sync.categorize_and_save_message(@mail, 51)
+
+      message = Message.find_by_uid_number(51)
+
+      expect(message.category).to eq("Offer")
+      expect(message.extracted_datetime.to_i).to eq((DateTime.now.utc + 3.hours).to_i)
     end
 
-    it 'should try to extract date/time if there is a %/$ off keyword in subject' do
+    it 'as an offer with datetime from body if there is a %/$ off keyword in subject' do
+      @mail.subject = "$100 off iPads"
+      @mail.body = "The best offer ever! Valid through #{(DateTime.now + 3.days).strftime("%B %d, %Y")}"
+      net_imap_init_and_auth
+      create(:message, uid_number: 51)
 
+      imap_sync = ImapSync.new(@user)
+      imap_sync.categorize_and_save_message(@mail, 51)
+
+      message = Message.find_by_uid_number(51)
+
+      expect(message.category).to eq("Offer")
+      expect(message.extracted_datetime.to_i).to eq((DateTime.now + 3.days).middle_of_day.utc.to_i)
     end
 
-    it 'should categorize message as information if no date/time or %/$ off keyword in subject' do
+    it 'as information if no keywords indicating offer in subject or body' do
+      @mail.subject = "The new iPads are out!"
+      @mail.body = "Nothing to see here"
+      net_imap_init_and_auth
+      create(:message, uid_number: 51)
 
+      imap_sync = ImapSync.new(@user)
+      imap_sync.categorize_and_save_message(@mail, 51)
+
+      message = Message.find_by_uid_number(51)
+
+      expect(message.category).to eq("Informational")
+      expect(message.extracted_datetime).to be_nil
     end
 
   end
