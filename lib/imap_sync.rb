@@ -14,31 +14,33 @@ class ImapSync
       @user.refresh_user_token
     end
     @imap.authenticate("XOAUTH2", @user.email, @user.token)
-    @imap_folders = @imap.list("", "*")
   end
 
-  def examine_folder(current_imap_folder = @imap_folders.first)
-    @imap.examine(current_imap_folder.name)
+  def examine_folder(current_imap_folder_name)
+    @imap.examine(current_imap_folder_name)
     uid_validity_number = @imap.responses["UIDVALIDITY"][-1]
-    Folder.find_or_create_by(user: @user, uid_validity_number: uid_validity_number, name: current_imap_folder.name)
+    Folder.find_or_create_by(user: @user, uid_validity_number: uid_validity_number, name: current_imap_folder_name)
   end
 
-  def find_and_save_new_emails(search_term = "unsubscribe")
-    @imap_folders.each do |current_imap_folder|
+  def find_and_save_new_emails(search_term = "unsubscribe", imap_folder_names = @imap.list("", "*").map(&:name))
+    imap_folder_names.each do |current_imap_folder_name|
       begin
-        current_activerecord_folder = examine_folder(current_imap_folder)
+        current_activerecord_folder = examine_folder(current_imap_folder_name)
       rescue Net::IMAP::NoResponseError => e
-        puts e.message
+        puts e.message #TODO: Rails logger
         next
       end
       new_uid_numbers = find_emails(current_activerecord_folder, search_term) #returns sorted
       new_uid_numbers.each do |uid_number|
         mail = Mail.read_from_string(@imap.uid_fetch(uid_number,'RFC822')[0].attr['RFC822'])
         if mail.date > (Time.now - 1.year)
-          categorize_and_save_message(mail, uid_number)
+          last_highest_uid_number = categorize_and_save_message(mail, uid_number)
         end
       end
-      current_activerecord_folder.update(last_highest_uid_number: new_uid_numbers.last) if new_uid_numbers.last
+      #update last highest uid number in db for folder
+      if last_higest_uid_number
+        current_activerecord_folder.update(last_highest_uid_number: last_higest_uid_number)
+      end
     end
   end
 
@@ -64,9 +66,9 @@ class ImapSync
 
       message = Message.where(uid_number: uid_number).first_or_create
       #relevant_datetime is a Time object converted to DateTime UTC by Rails before saving to PG
-      message.update(category: category, received_at: time_received, body: decoded_body, subject: mail.subject, extracted_datetime: relevant_datetime, sender_email: mail.from)
+      message.update(category: category, received_at: time_received, body: decoded_body, subject: mail.subject, extracted_datetime: relevant_datetime, sender_email: mail.from.first)
 
-      last_highest_uid_number = uid_number
+      uid_number
   end
 
   private

@@ -44,7 +44,7 @@ RSpec.describe "ImapSync" do
       expect(imap).to receive(:examine).with(current_folder.name)
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.examine_folder(current_folder)
+      imap_sync.examine_folder(current_folder.name)
 
       expect(Folder.count).to eq(2)
     end
@@ -61,7 +61,7 @@ RSpec.describe "ImapSync" do
       expect(imap).to receive(:examine).with(current_folder.name)
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.examine_folder(current_folder)
+      imap_sync.examine_folder(current_folder.name)
 
       expect(Folder.count).to eq(2)
     end
@@ -77,7 +77,7 @@ RSpec.describe "ImapSync" do
       expect(imap).to receive(:examine).with(current_folder.name)
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.examine_folder(current_folder)
+      imap_sync.examine_folder(current_folder.name)
 
       expect(Folder.count).to eq(1)
     end
@@ -166,7 +166,6 @@ RSpec.describe "ImapSync" do
   def net_imap_init_and_auth(imap = double("imap"))
     allow(Net::IMAP).to receive(:new).and_return(imap)
     allow(imap).to receive(:authenticate)
-    imap_folders = [{name: "INBOX"}, {name: "ALL MAIL"}]
-    allow(imap).to receive(:list).with("", "*").and_return(imap_folders)
+    allow(imap).to receive(:list).with("", "*").and_return([{name: "INBOX"}, {name: "ALL MAIL"}])
   end
 end

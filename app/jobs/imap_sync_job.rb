@@ -4,6 +4,8 @@ class ImapSyncJob < ApplicationJob
 
   def perform(user)
     imap_sync = ImapSync.new(user)
-    imap_sync.find_and_save_new_emails
+    #for gmail only need to examine the "[Gmail]All Mail" folder
+    ##this folder has all mail and cannot be renamed or deleted by user
+    imap_sync.find_and_save_new_emails("unsubscribe", ["[Gmail]/All Mail"])
   end
 end
