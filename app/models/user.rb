@@ -1,9 +1,15 @@
 class User < ApplicationRecord
+  has_many :folders
   # Include default devise modules. Others available are:
   # :confirmable, :lockable, :timeoutable and :omniauthable
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :trackable, :validatable,
          :omniauthable, omniauth_providers: [:google_oauth2]
+
+  after_create do
+    ImapSyncJob.perform_later(self)
+  end
+
 
    def self.find_for_google(auth)
      data = auth.info

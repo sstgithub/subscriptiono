@@ -27,7 +27,7 @@ class ImapSync
       begin
         current_activerecord_folder = examine_folder(current_imap_folder_name)
       rescue Net::IMAP::NoResponseError => e
-        puts e.message #TODO: Rails logger
+        Rails.logger.debug e.message
         next
       end
       new_uid_numbers = find_emails(current_activerecord_folder, search_term) #returns sorted
