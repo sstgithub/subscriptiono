@@ -68,3 +68,5 @@ gem 'httparty'
 gem 'chronic'
 
 gem 'delayed_job_active_record'
+
+ruby '2.4.1'
