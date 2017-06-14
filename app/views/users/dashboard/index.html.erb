@@ -14,7 +14,7 @@
     <% @messages.each do |message| %>
       <tr>
         <td><%= message["category"] %></td>
-        <td><%= message["sender_email"] %></td>
+        <td><%= message["sender_email"].split("@").last %></td>
         <td><%= message["received_at"] %></td>
         <td><%= message["subject"] %></td>
         <td>
