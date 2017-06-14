@@ -7,7 +7,7 @@ class User < ApplicationRecord
          :omniauthable, omniauth_providers: [:google_oauth2]
 
   after_create do
-    ImapSyncJob.perform_later(self)
+    ImapSyncJob.perform_later(self.id)
   end
 
 

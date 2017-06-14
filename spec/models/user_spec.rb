@@ -13,8 +13,8 @@ RSpec.describe User, type: :model do
   end
 
   it 'queues imap sync job after create' do
-    user = build(:user)
-    expect(ImapSyncJob).to receive(:perform_later).with(user)
+    user = build(:user, id: 1)
+    expect(ImapSyncJob).to receive(:perform_later).with(user.id)
     user.save!
   end
 end
