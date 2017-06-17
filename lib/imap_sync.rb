@@ -65,7 +65,8 @@ class ImapSync
       category, relevant_datetime = get_category_and_relevant_datetime(mail.from, mail.subject, decoded_body.downcase, time_received)
 
       message = Message.where(uid_number: uid_number).first_or_create
-      #relevant_datetime is a Time object converted to DateTime UTC by Rails before saving to PG
+      #NOTE: Rails converts from/to Time UTC when reading/writing extracted_datetime to PG
+      ##(extracted_datetime is datetime col in Rails which maps to PG timestamp)
       message.update(category: category, received_at: time_received, body: decoded_body, subject: mail.subject, extracted_datetime: relevant_datetime, sender_email: mail.from.first)
 
       uid_number
@@ -108,7 +109,6 @@ class ImapSync
   end
 
   def extract_relevant_datetime_from_body(body, time_received)
-    # Chronic.parse(body.scan(/(ends |expires )(.*?)at/).first)
     hits = body.scan(/(ends at|expires at|valid through) (.*?)(,)/)
     if !hits.blank?
       #parse extracted time based on when messaged was received
