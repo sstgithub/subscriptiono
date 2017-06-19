@@ -100,16 +100,17 @@ RSpec.describe "ImapSync" do
   describe "categorize and save message" do
     before do
       @mail = Mail.new(from: "sender@sendermail.com", date: Time.now)
+      @folder = create(:folder, name: "test folder", uid_validity_number: "123", user: @user)
     end
 
     it 'as an offer if there is a %/$ off keyword in subject' do
       @mail.subject = "$100 off iPads"
       @mail.body = "Nothing to see here"
       net_imap_init_and_auth
-      create(:message, uid_number: 51)
+      create(:message, uid_number: 51, folder: @folder)
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.categorize_and_save_message(@mail, 51)
+      imap_sync.categorize_and_save_message(@mail, 51, @folder.id)
 
       message = Message.find_by_uid_number(51)
 
@@ -120,10 +121,10 @@ RSpec.describe "ImapSync" do
       @mail.subject = "Only 3 hours left!"
       @mail.body = "Nothing to see here"
       net_imap_init_and_auth
-      create(:message, uid_number: 51)
+      create(:message, uid_number: 51, folder: @folder)
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.categorize_and_save_message(@mail, 51)
+      imap_sync.categorize_and_save_message(@mail, 51, @folder.id)
 
       message = Message.find_by_uid_number(51)
 
@@ -135,10 +136,10 @@ RSpec.describe "ImapSync" do
       @mail.subject = "$100 off iPads"
       @mail.body = "The best offer ever! Valid through #{(DateTime.now + 3.days).strftime("%B %d, %Y")}"
       net_imap_init_and_auth
-      create(:message, uid_number: 51)
+      create(:message, uid_number: 51, folder: @folder)
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.categorize_and_save_message(@mail, 51)
+      imap_sync.categorize_and_save_message(@mail, 51, @folder.id)
 
       message = Message.find_by_uid_number(51)
 
@@ -150,10 +151,10 @@ RSpec.describe "ImapSync" do
       @mail.subject = "The new iPads are out!"
       @mail.body = "Nothing to see here"
       net_imap_init_and_auth
-      create(:message, uid_number: 51)
+      create(:message, uid_number: 51, folder: @folder)
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.categorize_and_save_message(@mail, 51)
+      imap_sync.categorize_and_save_message(@mail, 51, @folder.id)
 
       message = Message.find_by_uid_number(51)
 
