@@ -34,7 +34,7 @@ class ImapSync
       new_uid_numbers.each do |uid_number|
         mail = Mail.read_from_string(@imap.uid_fetch(uid_number,'RFC822')[0].attr['RFC822'])
         if mail.date > (Time.now - 1.year)
-          last_highest_uid_number = categorize_and_save_message(mail, uid_number)
+          last_highest_uid_number = categorize_and_save_message(mail, uid_number, current_activerecord_folder.id)
         end
       end
       #update last highest uid number in db for folder
@@ -49,7 +49,7 @@ class ImapSync
     @imap.uid_search(["UID", "#{last_highest_uid_number}:#{MAX_INT}", "TEXT", search_term])
   end
 
-  def categorize_and_save_message(mail, uid_number)
+  def categorize_and_save_message(mail, uid_number, folder_id)
       begin
         decoded_body = mail.decoded
       rescue NoMethodError => e
@@ -64,7 +64,7 @@ class ImapSync
       time_received = mail.date #mail date is already Time object
       category, relevant_datetime = get_category_and_relevant_datetime(mail.from, mail.subject, decoded_body.downcase, time_received)
 
-      message = Message.where(uid_number: uid_number).first_or_create
+      message = Message.where(folder_id: folder_id, uid_number: uid_number).first_or_create
       #NOTE: Rails converts from/to Time UTC when reading/writing extracted_datetime to PG
       ##(extracted_datetime is datetime col in Rails which maps to PG timestamp)
       message.update(category: category, received_at: time_received, body: decoded_body, subject: mail.subject, extracted_datetime: relevant_datetime, sender_email: mail.from.first)

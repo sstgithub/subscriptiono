@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170614044457) do
+ActiveRecord::Schema.define(version: 20170618060418) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -50,6 +50,8 @@ ActiveRecord::Schema.define(version: 20170614044457) do
     t.string "sender_email"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "folder_id"
+    t.index ["folder_id"], name: "index_messages_on_folder_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -74,4 +76,5 @@ ActiveRecord::Schema.define(version: 20170614044457) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "messages", "folders"
 end
