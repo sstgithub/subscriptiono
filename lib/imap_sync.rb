@@ -9,7 +9,6 @@ class ImapSync
   def initialize(user)
     @user = user
     @imap = Net::IMAP.new("imap.gmail.com", 993, usessl = true, certs = nil, verify = false)
-    #TODO: refresh everytime so always have maximum time to complete sync? Currently could start job with only seconds left before expiration and dont know exactly how long the job will take.
     if @user.token_expires_at < Time.now.to_i
       @user.refresh_user_token
     end
