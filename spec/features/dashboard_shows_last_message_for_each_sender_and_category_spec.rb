@@ -1,10 +1,6 @@
 require "rails_helper"
 
 feature "User dashboard renders with last message received for each sender email and category combination" do
-  #create user
-  #create two folders for user
-  #create 10 messages for folder one and 15 messages for folder 2
-  #5 senders, 4 of those senders have both informational and offer emails and one has just informational email
   before do
     Timecop.freeze
     OmniAuth.config.test_mode = true
@@ -14,21 +10,22 @@ feature "User dashboard renders with last message received for each sender email
 
     user = create(:user, email: @google_auth_data.info.email, uid: @google_auth_data.uid)
 
-    #create folders with messages with two different senders with Offer or Informational categories, received at different times
+    #create two folders for user with messages by sender 1 and sender 2 and with category "Offer" or "Informational"
     folder = create(:folder, user: user, last_highest_uid_number: 5)
-    create(:message, folder: folder, category: "Informational", sender_email: "sender1@sender1email.com", received_at: (Time.now - 1.month), uid_number: 1)
-    create(:message, folder: folder, category: "Offer", sender_email: "sender1@sender1email.com", received_at: (Time.now - 1.day), uid_number: 2)
-    create(:message, folder: folder, category: "Offer", sender_email: "sender1@sender1email.com", received_at: (Time.now - 1.hour), uid_number: 3)
-    create(:message, folder: folder, category: "Informational", sender_email: "sender2@sender2email.com", received_at: (Time.now - 1.day), uid_number: 4)
-    create(:message, folder: folder, category: "Offer", sender_email: "sender2@sender2email.com", received_at: (Time.now - 1.day), uid_number: 5)
+    create(:message, folder: folder, category: "Informational", sender_email: "sender1@sender1email.com", received_at: (Time.now - 1.month), subject: "Some info by Sender 1", uid_number: 1)
+    create(:message, folder: folder, category: "Offer", sender_email: "sender1@sender1email.com", received_at: (Time.now - 1.day), subject: "New offer by Sender 1!", extracted_datetime: (Time.now), uid_number: 2)
+    #Sender 1: last received offer
+    create(:message, folder: folder, category: "Offer", sender_email: "sender1@sender1email.com", received_at: (Time.now - 1.hour), subject: "New offer by Sender 1!", extracted_datetime: (Time.now + 4.days), uid_number: 3)
+    create(:message, folder: folder, category: "Informational", sender_email: "sender2@sender2email.com", received_at: (Time.now - 1.day), subject: "Some info by Sender 2", uid_number: 4)
+    #Sender 2: last received offer
+    create(:message, folder: folder, category: "Offer", sender_email: "sender2@sender2email.com", received_at: (Time.now - 1.minute), subject: "New offer by Sender 2!", uid_number: 5)
 
     folder = create(:folder, user: user, last_highest_uid_number: 2)
-    create(:message, folder: folder, category: "Informational", sender_email: "sender1@sender1email.com", received_at: Time.now, uid_number: 1)
-    create(:message, folder: folder, category: "Offer", sender_email: "sender1@sender1email.com", received_at: (Time.now - 2.days), uid_number: 2)
-    create(:message, folder: folder, category: "Informational", sender_email: "sender2@sender2email.com", received_at: (Time.now - 1.hour), uid_number: 3)
-
-    # create(:folder_with_messages, user: user, last_highest_uid_number: 15)
-    # create(:folder_with_messages, user: user, last_highest_uid_number: 10)
+    #Sender 1: last received information
+    create(:message, folder: folder, category: "Informational", sender_email: "sender1@sender1email.com", received_at: Time.now, subject: "Some info by Sender 1", uid_number: 1)
+    create(:message, folder: folder, category: "Offer", sender_email: "sender1@sender1email.com", received_at: (Time.now - 2.days), subject: "New offer by Sender 1!", uid_number: 2)
+    #Sender 2: last received information
+    create(:message, folder: folder, category: "Informational", sender_email: "sender2@sender2email.com", received_at: (Time.now - 1.hour), subject: "Some info by Sender 2", uid_number: 3)
   end
 
   after do
@@ -40,5 +37,53 @@ feature "User dashboard renders with last message received for each sender email
     click_link "Sign in with Google"
 
     expect(page).to have_table(:messages_by_sender_and_category)
+
+    within("table#messages_by_sender_and_category") do
+      within("thead") do
+        #one  row with expected headers
+        expect(all("tr").length).to eq(1)
+        header_columns = first("tr").all("th")
+
+        expect(header_columns[0].text).to eq("Sender category")
+        expect(header_columns[1].text).to eq("Sender email")
+        expect(header_columns[2].text).to eq("Received")
+        expect(header_columns[3].text).to eq("Subject")
+        expect(header_columns[4].text).to eq("Extracted datetime")
+      end
+
+      within("tbody") do
+        #4 content rows with latest relevant message in informational and offer category for both senders, sorted by received_at datetime
+        expect(all("tr").length).to eq(4)
+        all("tr").each_with_index do |row, index|
+          columns = row.all("td")
+          case index
+          when 0
+            expect(columns[0].text).to eq("Informational")
+            expect(columns[1].text).to eq("sender1email.com")
+            expect(columns[2].text).to eq(Time.now.utc.to_s)
+            expect(columns[3].text).to eq("Some info by Sender 1")
+            expect(columns[4].text).to be_empty
+          when 1
+            expect(columns[0].text).to eq("Offer")
+            expect(columns[1].text).to eq("sender2email.com")
+            expect(columns[2].text).to eq((Time.now.utc - 1.minute).to_s)
+            expect(columns[3].text).to eq("New offer by Sender 2!")
+            expect(columns[4].text).to be_empty
+          when 2
+            expect(columns[0].text).to eq("Offer")
+            expect(columns[1].text).to eq("sender1email.com")
+            expect(columns[2].text).to eq((Time.now.utc - 1.hour).to_s)
+            expect(columns[3].text).to eq("New offer by Sender 1!")
+            expect(columns[4].text).to eq((Time.now.utc + 4.days).to_s)
+          when 3
+            expect(columns[0].text).to eq("Informational")
+            expect(columns[1].text).to eq("sender2email.com")
+            expect(columns[2].text).to eq((Time.now.utc - 1.hour).to_s)
+            expect(columns[3].text).to eq("Some info by Sender 2")
+            expect(columns[4].text).to be_empty
+          end
+        end
+      end
+    end
   end
 end
