@@ -4,7 +4,7 @@ RSpec.describe ImapSyncJob, type: :job do
   before do
     Timecop.freeze
     @user = build(:user, id: 1)
-    #stub out user create callback. TODO: better way to do this?
+    #stub out user create callback
     expect(ImapSyncJob).to receive(:perform_later).with(@user.id).exactly(:once)
     @user.save!
   end
