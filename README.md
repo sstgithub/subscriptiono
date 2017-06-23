@@ -1,5 +1,7 @@
 # README
 
+[![CircleCI](https://circleci.com/gh/sstgithub/subscriptiono.svg?&style=shield&circle-token=485d7e33c3edbd94342ce58c7a8087cd0e09b12b3asdfsadf)](https://circleci.com/gh/sstgithub/subscriptiono)
+
 ## Overview
 
 Somewhat similar to Unroll.me, Subscriptiono will help the user organize their inbox and not get distracted by all those informational and offer emails they get from newsletters to which they are subscribed. Unlike Unroll.me, Subscriptiono only looks for subscription emails and only for the purposes of displaying them to the user (More information [here](https://www.nytimes.com/2017/04/24/technology/personal-data-firm-slice-unroll-me-backlash-uber.html) and a response from the company as well as thoughts of users [here](http://blog.unroll.me/we-can-do-better/)).
