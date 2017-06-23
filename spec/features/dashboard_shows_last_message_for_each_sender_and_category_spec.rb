@@ -59,26 +59,26 @@ feature "User dashboard renders with last message received for each sender email
           case index
           when 0
             expect(columns[0].text).to eq("Informational")
-            expect(columns[1].text).to eq("sender1email.com")
-            expect(columns[2].text).to eq(Time.now.utc.to_s)
+            expect(columns[1].text).to eq("sender1@sender1email.com")
+            expect(columns[2].text).to eq("less than a minute ago")
             expect(columns[3].text).to eq("Some info by Sender 1")
             expect(columns[4].text).to be_empty
           when 1
             expect(columns[0].text).to eq("Offer")
-            expect(columns[1].text).to eq("sender2email.com")
-            expect(columns[2].text).to eq((Time.now.utc - 1.minute).to_s)
+            expect(columns[1].text).to eq("sender2@sender2email.com")
+            expect(columns[2].text).to eq("1 minute ago")
             expect(columns[3].text).to eq("New offer by Sender 2!")
             expect(columns[4].text).to be_empty
           when 2
             expect(columns[0].text).to eq("Offer")
-            expect(columns[1].text).to eq("sender1email.com")
-            expect(columns[2].text).to eq((Time.now.utc - 1.hour).to_s)
+            expect(columns[1].text).to eq("sender1@sender1email.com")
+            expect(columns[2].text).to eq("about 1 hour ago")
             expect(columns[3].text).to eq("New offer by Sender 1!")
-            expect(columns[4].text).to eq((Time.now.utc + 4.days).to_s)
+            expect(columns[4].text).to eq("4 days left")
           when 3
             expect(columns[0].text).to eq("Informational")
-            expect(columns[1].text).to eq("sender2email.com")
-            expect(columns[2].text).to eq((Time.now.utc - 1.hour).to_s)
+            expect(columns[1].text).to eq("sender2@sender2email.com")
+            expect(columns[2].text).to eq("about 1 hour ago")
             expect(columns[3].text).to eq("Some info by Sender 2")
             expect(columns[4].text).to be_empty
           end
