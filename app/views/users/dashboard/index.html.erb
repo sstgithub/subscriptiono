@@ -1,4 +1,4 @@
-<table id="messages_by_sender_and_category">
+<table id="messages_by_sender_and_category" class="table-minimal">
   <thead>
     <tr>
       <th>Sender category</th>
@@ -14,12 +14,16 @@
     <% @messages.each do |message| %>
       <tr>
         <td><%= message["category"] %></td>
-        <td><%= message["sender_email"].split("@").last %></td>
-        <td><%= message["received_at"] %></td>
+        <td><%= message["sender_email"] %></td>
+        <td><%= distance_of_time_in_words_to_now(message["received_at"]) %> ago</td>
         <td><%= message["subject"] %></td>
         <td>
         <% if message["extracted_datetime"] %>
-        <%= message["extracted_datetime"] %>
+          <% if message["extracted_datetime"] > Time.now %>
+            <%= distance_of_time_in_words_to_now(message["extracted_datetime"]) %> left
+          <% else %>
+            Expired <%= distance_of_time_in_words_to_now(message["extracted_datetime"]) %> ago
+          <% end %>
         <% end %>
         </td>
         <td><%= link_to 'Show', message_path(message["id"]) %></td>
