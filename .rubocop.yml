@@ -1790,3 +1790,8 @@ Metrics/LineLength:
 AllCops:
   Exclude:
     - 'spec/*'
+    - 'bin/*'
+    - 'config/*'
+    - 'db/*'
+  Include:
+    - 'config/routes.rb'

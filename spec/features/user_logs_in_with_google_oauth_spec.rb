@@ -1,7 +1,7 @@
-require "rails_helper"
-require "faker"
+require 'rails_helper'
+require 'faker'
 
-feature "User logs in with google oauth" do
+feature 'User logs in with google oauth' do
   before do
     OmniAuth.config.test_mode = true
 
@@ -13,28 +13,28 @@ feature "User logs in with google oauth" do
     OmniAuth.config.test_mode = false
   end
 
-  scenario "existing user" do
+  scenario 'existing user' do
     user = create(:user, email: @google_auth_data.info.email, uid: @google_auth_data.uid)
 
     expect(User.count).to eq(1)
     expect(User.first).to eq(user)
 
     visit root_path
-    click_link "Sign in with Google"
+    click_link 'Sign in with Google'
 
     expect(User.count).to eq(1)
     expect(User.first).to eq(user)
 
-    expect(page).to have_content "Logout"
+    expect(page).to have_content 'Logout'
   end
 
-  scenario "new user" do
+  scenario 'new user' do
     expect(User.count).to eq(0)
 
     visit root_path
-    click_link "Sign in with Google"
+    click_link 'Sign in with Google'
 
     expect(User.count).to eq(1)
-    expect(page).to have_content "Logout"
+    expect(page).to have_content 'Logout'
   end
 end

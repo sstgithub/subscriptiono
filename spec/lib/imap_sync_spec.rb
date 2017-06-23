@@ -31,16 +31,14 @@ RSpec.describe 'ImapSync' do
       create(:folder, name: 'test folder', uid_validity_number: '123', user: @user)
     end
 
-
     it 'should create new folder if one doesnt exist for that uid validity number and name' do
       expect(Folder.count).to eq(1)
 
-      imap = double('imap', responses: {'UIDVALIDITY' => [321]})
-
+      imap = double('imap', responses: { 'UIDVALIDITY' => [321] })
 
       net_imap_init_and_auth(imap)
 
-      current_folder = double('current_folder', {name: 'different name folder'})
+      current_folder = double('current_folder', name: 'different name folder')
       expect(imap).to receive(:examine).with(current_folder.name)
 
       imap_sync = ImapSync.new(@user)
@@ -54,10 +52,9 @@ RSpec.describe 'ImapSync' do
 
       imap = double('imap', responses: { 'UIDVALIDITY' => [321] })
 
-
       net_imap_init_and_auth(imap)
 
-      current_folder = double('current_folder', { name: 'test folder' })
+      current_folder = double('current_folder', name: 'test folder')
       expect(imap).to receive(:examine).with(current_folder.name)
 
       imap_sync = ImapSync.new(@user)
@@ -72,8 +69,7 @@ RSpec.describe 'ImapSync' do
 
       net_imap_init_and_auth(imap)
 
-
-      current_folder = double('current_folder', { name: 'test folder' })
+      current_folder = double('current_folder', name: 'test folder')
       expect(imap).to receive(:examine).with(current_folder.name)
 
       imap_sync = ImapSync.new(@user)
