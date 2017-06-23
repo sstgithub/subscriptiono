@@ -1,19 +1,24 @@
 class Users::DashboardController < ApplicationController
   def index
-    # Get last message for each unique (sender and category) combination
+    # Get last msg for each uniq (sender & category) combo for user
     #  (must have been received less than one year ago)
-
     # Use ActiveRecord DSL where possible
+
+    list_of_folders_ids_for_user = current_user.folders.pluck(:id)
 
     # SQL string to get last msg received for each sender_email, category combo
     #  SELECT sender_email, category, max(received_at) AS received_at
     #  FROM messages WHERE received_at >= '#{1.year.ago}'
+    #  AND folder_id IN (#{list_of_folders_ids_for_user})
     #  GROUP BY sender_email, category"
     grouped_messages_sql_str =
       Message.select("
                sender_email, category, max(received_at) AS received_at
              ")
-             .where(received_at: 1.year.ago..Time.now)
+             .where(
+               received_at: (1.year.ago..Time.now),
+               folder_id: list_of_folders_ids_for_user
+             )
              .group(:sender_email, :category)
              .to_sql
 
