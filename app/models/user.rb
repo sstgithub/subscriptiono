@@ -28,12 +28,12 @@ class User < ApplicationRecord
 
    def refresh_user_token
      options = {
-       client_id: ENV["GOOGLE_CLIENT_ID"],
-       client_secret: ENV["GOOGLE_CLIENT_SECRET"],
+       client_id: ENV['GOOGLE_CLIENT_ID'],
+       client_secret: ENV['GOOGLE_CLIENT_SECRET'],
        refresh_token: self.refresh_token,
-       grant_type: "refresh_token"
+       grant_type: 'refresh_token'
      }
-     response = HTTParty.post("https://www.googleapis.com/oauth2/v4/token", body: options)
+     response = HTTParty.post('https://www.googleapis.com/oauth2/v4/token', body: options)
      refreshed_access_token = response.parsed_response['access_token']
      expiration_time = Time.now.to_i + response.parsed_response['expires_in'].to_i
      self.update(token: refreshed_access_token, token_expires_at: expiration_time)
