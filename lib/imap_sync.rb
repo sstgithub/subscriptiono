@@ -43,7 +43,12 @@ class ImapSync
 
   def find_emails(folder, search_term = 'unsubscribe')
     last_highest_uid_number = folder.last_highest_uid_number + 1
-    @imap.uid_search(['UID', "#{last_highest_uid_number}:#{MAX_INT}", 'TEXT', search_term])
+    @imap.uid_search([
+                      'UID',
+                      "#{last_highest_uid_number}:#{MAX_INT}",
+                      'TEXT',
+                      search_term
+                     ])
   end
 
   def categorize_and_save_message(mail, uid_number, folder_id)
@@ -51,63 +56,74 @@ class ImapSync
       decoded_body = mail.decoded
     rescue NoMethodError => e
       # This is a bug in mail gem. Calling decoded should parse body to UTF8
-      if e.message == 'Can not decode an entire message, try calling #decoded on the various fields and body or parts if it is a multipart message.'
+      if e.message == 'Can not decode an entire message, try calling #decoded '\
+        'on the various fields and body or parts if it is a multipart message.'
         decoded_body = mail.body.decoded
       else
         raise e
       end
     end
-    # time_received = Time.at(mail.date.to_i)
-    time_received = mail.date # mail date is already Time object
-    category, relevant_datetime = get_category_and_relevant_datetime(mail.from, mail.subject, decoded_body.downcase, time_received)
+    # mail date is already Time object so no need to convert
+    time_received = mail.date
+    category, relevant_datetime = get_category_and_relevant_datetime(
+      mail.subject,
+      decoded_body.downcase,
+      time_received
+    )
 
-    message = Message.where(folder_id: folder_id, uid_number: uid_number).first_or_create
-    # NOTE: Rails converts from/to Time UTC when reading/writing extracted_datetime to PG
+    message = Message.where(folder_id: folder_id, uid_number: uid_number)
+                     .first_or_create
+    # Rails conv from/to Time UTC when reading/writing extracted_datetime to PG
     # #(extracted_datetime is datetime col in Rails which maps to PG timestamp)
-    message.update(category: category, received_at: time_received, body: decoded_body, subject: mail.subject, extracted_datetime: relevant_datetime, sender_email: mail.from.first)
+    message.update(
+      category: category,
+      received_at: time_received,
+      body: decoded_body,
+      subject: mail.subject,
+      extracted_datetime: relevant_datetime,
+      sender_email: mail.from.first
+    )
 
     uid_number
   end
 
   private
 
-  def get_category_and_relevant_datetime(_sender_email, subject, body, time_received)
-    relevant_datetime = extract_relevant_datetime_from_subject(subject, time_received)
+  def get_category_and_relevant_datetime(subject, body, time_received)
+    datetime = extract_relevant_datetime_from_subject(subject, time_received)
 
-    if relevant_datetime
-      category = 'Offer'
+    if datetime
+      ['Offer', datetime]
+    # if any $... or ...% in subject line.
+    elsif !subject.scan(/(\$\d+|\d+\%)/).blank?
+      # determine offer expiration if any from email body
+      ['Offer', extract_relevant_datetime_from_body(body, time_received)]
     else
-      # if any $... or ...% in subject line. typically wont spell out word since limited characters available
-      if !subject.scan(/(\$\d+|\d+\%)/).blank?
-        category = 'Offer'
-        # determine offer expiration if any from email body
-        relevant_datetime = extract_relevant_datetime_from_body(body, time_received)
-      else
-        category = 'Informational'
-      end
+      'Informational'
     end
-
-    [category, relevant_datetime]
   end
 
   def extract_relevant_datetime_from_subject(subject, time_received)
     time_till_expiration = subject.downcase.scan(/(\d+ hour|\d+ day)/)
-    unless time_till_expiration.blank?
-      time_till_expiration_to_use = time_till_expiration.first.last.split(' ')
-      begin
-        extracted_time_left = time_till_expiration_to_use[0].to_i.send(time_till_expiration_to_use[1])
-        time_received + extracted_time_left
-      rescue ArgumentError => e
-        raise e unless e.message == 'invalid date'
-      end
+    return time_till_expiration if time_till_expiration.blank?
+    # Get string from first result array from returned array of arrays
+    # # Turn string into array of two words
+    # Example: [["3 hour"], ["2 day"]] => ["3", "hour"]
+    amount_of_time_unit, time_unit = time_till_expiration.first.last.split(' ')
+    begin
+      # Rails time parsing. Example: 3.hour or 2.day
+      extracted_time_left = (amount_of_time_unit.to_i).send(time_unit)
+      time_received + extracted_time_left
+    rescue ArgumentError => e
+      raise e unless e.message == 'invalid date'
     end
   end
 
   def extract_relevant_datetime_from_body(body, time_received)
     hits = body.scan(/(ends at|expires at|valid through) (.*?)(,)/)
-    unless hits.blank?
-      # parse extracted time based on when messaged was received
-      Chronic.parse(hits.first[1], now: time_received, context: :future) # Time obj
-    end
+    return hits if hits.blank?
+    # parse extracted time based on when messaged was received
+    # # creates a Time obj
+    Chronic.parse(hits.first[1], now: time_received, context: :future)
   end
 end
