@@ -86,7 +86,7 @@ RSpec.describe 'ImapSync' do
       imap = double('imap')
 
       net_imap_init_and_auth(imap)
-      expect(imap).to receive(:uid_search).with(['UID', '51:2147483647', 'TEXT', 'unsubscribe'])
+      expect(imap).to receive(:uid_search).with(['UID', '51:2147483647', 'TEXT', 'unsubscribe', 'SINCE', 1.year.ago.strftime('%-d-%b-%Y')])
 
       imap_sync = ImapSync.new(@user)
       imap_sync.find_emails(folder)
@@ -103,10 +103,9 @@ RSpec.describe 'ImapSync' do
       @mail.subject = '$100 off iPads'
       @mail.body = 'Nothing to see here'
       net_imap_init_and_auth
-      create(:message, uid_number: 51, folder: @folder)
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.categorize_and_save_message(@mail, 51, @folder.id)
+      imap_sync.group_and_save_message(@mail, 51, @folder.id)
 
       message = Message.find_by_uid_number(51)
 
@@ -117,10 +116,9 @@ RSpec.describe 'ImapSync' do
       @mail.subject = 'Only 3 hours left!'
       @mail.body = 'Nothing to see here'
       net_imap_init_and_auth
-      create(:message, uid_number: 51, folder: @folder)
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.categorize_and_save_message(@mail, 51, @folder.id)
+      imap_sync.group_and_save_message(@mail, 51, @folder.id)
 
       message = Message.find_by_uid_number(51)
 
@@ -132,10 +130,9 @@ RSpec.describe 'ImapSync' do
       @mail.subject = '$100 off iPads'
       @mail.body = "The best offer ever! Valid through #{(DateTime.now + 3.days).strftime('%B %d, %Y')}"
       net_imap_init_and_auth
-      create(:message, uid_number: 51, folder: @folder)
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.categorize_and_save_message(@mail, 51, @folder.id)
+      imap_sync.group_and_save_message(@mail, 51, @folder.id)
 
       message = Message.find_by_uid_number(51)
 
@@ -147,10 +144,12 @@ RSpec.describe 'ImapSync' do
       @mail.subject = 'The new iPads are out!'
       @mail.body = 'Nothing to see here'
       net_imap_init_and_auth
-      create(:message, uid_number: 51, folder: @folder)
+
+      message_params = {uid_number: 51, folder_id: @folder.id}
+      expect(Message).to receive(:find_or_create_by).with(message_params).and_return(create(:message, message_params))
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.categorize_and_save_message(@mail, 51, @folder.id)
+      imap_sync.group_and_save_message(@mail, 51, @folder.id)
 
       message = Message.find_by_uid_number(51)
 
