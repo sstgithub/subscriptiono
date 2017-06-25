@@ -4,15 +4,15 @@ RSpec.describe ImapSyncJob, type: :job do
   before do
     Timecop.freeze
     @user = build(:user, id: 1)
-    #stub out user create callback
+    # stub out user create callback
     expect(ImapSyncJob).to receive(:perform_later).with(@user.id).exactly(:once)
     @user.save!
   end
 
   it 'performs imap sync and requeues job for tomorrow' do
-    imap_sync = double("imap_sync")
-    expect(ImapSync).to receive(:new).with(@user).and_return(imap_sync)
-    expect(imap_sync).to receive(:find_and_save_new_emails)
+    imap_sync = double('imap_sync')
+    expect(ImapSync).to receive(:new).with(@user, ['[Gmail]/All Mail']).and_return(imap_sync)
+    expect(imap_sync).to receive(:sync_new_messages)
     ImapSyncJob.perform_now(@user.id)
 
     expect(ImapSyncJob).to have_been_enqueued.with(@user.id).exactly(:once).at(1.day)

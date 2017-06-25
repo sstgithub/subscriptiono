@@ -418,9 +418,12 @@ Style/ClassAndModuleCamelCase:
   Enabled: true
 
 Style/ClassAndModuleChildren:
-  Description: 'Checks style of children classes and modules.'
-  StyleGuide: '#namespace-definition'
-  Enabled: true
+  Description: Checks style of children classes and modules.
+  Enabled: false
+  EnforcedStyle: nested
+  SupportedStyles:
+  - nested
+  - compact
 
 Style/ClassCheck:
   Description: 'Enforces consistent use of `Object#is_a?` or `Object#kind_of?`.'
@@ -1787,6 +1790,23 @@ Metrics/LineLength:
   Exclude:
     - 'spec/**/*'
 
+Metrics/AbcSize:
+  Exclude:
+    - 'spec/**/*'
+
+
+
 AllCops:
   Exclude:
     - 'spec/*'
+    - 'bin/*'
+    - 'config/*'
+    - 'config/environments/*'
+    - 'config/initializers/*'
+    - 'db/*'
+    - 'db/**/*'
+    - 'Gemfile'
+    - 'Rakefile'
+    - 'app/views/**/*.json.jbuilder'
+  Include:
+    - 'config/routes.rb'
