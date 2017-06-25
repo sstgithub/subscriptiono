@@ -89,11 +89,11 @@ RSpec.describe 'ImapSync' do
       expect(imap).to receive(:uid_search).with(['UID', '51:2147483647', 'TEXT', 'unsubscribe', 'SINCE', 1.year.ago.strftime('%-d-%b-%Y')])
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.find_emails(folder)
+      imap_sync.search_folder(folder)
     end
   end
 
-  describe 'categorize and save message' do
+  describe 'analyze message' do
     before do
       @mail = Mail.new(from: 'sender@sendermail.com', date: Time.now)
       @folder = create(:folder, name: 'test folder', uid_validity_number: '123', user: @user)
@@ -105,11 +105,10 @@ RSpec.describe 'ImapSync' do
       net_imap_init_and_auth
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.group_and_save_message(@mail, 51, @folder.id)
+      category, extracted_datetime = imap_sync.analyze_and_extract(@mail.subject, @mail.body.decoded, Time.now)
 
-      message = Message.find_by_uid_number(51)
-
-      expect(message.category).to eq('Offer')
+      expect(category).to eq('Offer')
+      expect(extracted_datetime).to be_blank
     end
 
     it 'as an offer with datetime if there is a date/time in subject' do
@@ -118,12 +117,10 @@ RSpec.describe 'ImapSync' do
       net_imap_init_and_auth
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.group_and_save_message(@mail, 51, @folder.id)
+      category, extracted_datetime = imap_sync.analyze_and_extract(@mail.subject, @mail.body.decoded, Time.now)
 
-      message = Message.find_by_uid_number(51)
-
-      expect(message.category).to eq('Offer')
-      expect(message.extracted_datetime.to_i).to eq((DateTime.now.utc + 3.hours).to_i)
+      expect(category).to eq('Offer')
+      expect(extracted_datetime.to_i).to eq((DateTime.now.utc + 3.hours).to_i)
     end
 
     it 'as an offer with datetime from body if there is a %/$ off keyword in subject' do
@@ -132,12 +129,10 @@ RSpec.describe 'ImapSync' do
       net_imap_init_and_auth
 
       imap_sync = ImapSync.new(@user)
-      imap_sync.group_and_save_message(@mail, 51, @folder.id)
+      category, extracted_datetime = imap_sync.analyze_and_extract(@mail.subject, @mail.body.decoded, Time.now)
 
-      message = Message.find_by_uid_number(51)
-
-      expect(message.category).to eq('Offer')
-      expect(message.extracted_datetime.to_i).to eq((DateTime.now + 3.days).middle_of_day.utc.to_i)
+      expect(category).to eq('Offer')
+      expect(extracted_datetime.to_i).to eq((DateTime.now + 3.days).middle_of_day.utc.to_i)
     end
 
     it 'as information if no keywords indicating offer in subject or body' do
@@ -145,16 +140,11 @@ RSpec.describe 'ImapSync' do
       @mail.body = 'Nothing to see here'
       net_imap_init_and_auth
 
-      message_params = { uid_number: 51, folder_id: @folder.id }
-      expect(Message).to receive(:find_or_create_by).with(message_params).and_return(create(:message, message_params))
-
       imap_sync = ImapSync.new(@user)
-      imap_sync.group_and_save_message(@mail, 51, @folder.id)
+      category, extracted_datetime = imap_sync.analyze_and_extract(@mail.subject, @mail.body.decoded, Time.now)
 
-      message = Message.find_by_uid_number(51)
-
-      expect(message.category).to eq('Informational')
-      expect(message.extracted_datetime).to be_nil
+      expect(category).to eq('Informational')
+      expect(extracted_datetime).to be_blank
     end
   end
 

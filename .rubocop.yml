@@ -418,9 +418,12 @@ Style/ClassAndModuleCamelCase:
   Enabled: true
 
 Style/ClassAndModuleChildren:
-  Description: 'Checks style of children classes and modules.'
-  StyleGuide: '#namespace-definition'
-  Enabled: true
+  Description: Checks style of children classes and modules.
+  Enabled: false
+  EnforcedStyle: nested
+  SupportedStyles:
+  - nested
+  - compact
 
 Style/ClassCheck:
   Description: 'Enforces consistent use of `Object#is_a?` or `Object#kind_of?`.'

@@ -14,13 +14,10 @@ class User < ApplicationRecord
     user = User.find_or_create_by(provider: auth.provider, uid: auth.uid)
 
     user.update(
-      provider: auth.provider,
-      uid: auth.uid,
-      email: auth.info.email,
-      password: Devise.friendly_token[0, 20],
-      token: auth.credentials.token,
+      provider: auth.provider, uid: auth.uid, email: auth.info.email,
+      password: Devise.friendly_token[0, 20], token: auth.credentials.token,
       refresh_token: auth.credentials.refresh_token,
-      token_expires_at: auth.credentials.expires_at # integer
+      token_expires_at: auth.credentials.expires_at
     )
     user
   end

@@ -1,7 +1,11 @@
+# Syncs new messages from folder(s) in user's email based on search term
+# # Uses UID number in messages and UIDValidity from folders to ensure only
+# # new messages are synced
 class ImapSync
   require 'net/imap'
   require 'mail'
   require 'chronic'
+  # require 'imap_sync/folder'
 
   # fastmail max is 8 bytes but gmail max is 4 so go with 4 (normal int in PG)
   MAX_INT = 2_147_483_647
@@ -16,36 +20,51 @@ class ImapSync
     @imap_folder_names ||= @imap.list('', '*').map(&:name)
   end
 
-  def sync_new_emails(search_term = 'unsubscribe')
+  def sync_new_messages(search_term = 'unsubscribe')
     @imap_folder_names.each do |imap_folder_name|
       db_folder = examine_folder(imap_folder_name)
       # Go to next folder if this one returns an IMAP NoResponseError
       next unless db_folder
-      # search_emails returns sorted uid numbers array
-      sorted_uid_nums = search_emails(db_folder, search_term)
+      sorted_uid_nums = search_folder(db_folder, search_term)
       sorted_uid_nums.each do |uid_num|
         msg = fetch_imap_msg(uid_num)
-        category,offer_date = analyze_msg(msg[:subject], msg[:body], msg[:date])
+        # Get category & offer date, if any. Later this will get prices and
+        # names of products offered as well
+        msg[:category], msg[:extracted_datetime] = analyze_and_extract(
+          msg[:subject], msg[:body], msg[:received_at]
+        )
 
-        save_msg(db_folder.id, uid_num, { category: category, body: msg[:body],
-          sender_email: msg[:from], subject: msg[:subject],
-          # extracted_datetime is Rails datetime col which maps to PG timestamp
-          # Rails converts this from/to Time UTC when reading/writing to PG
-          received_at: msg[:date], extracted_datetime: offer_date })
+        save_msg(db_folder.id, uid_num, msg)
       end
       # update last highest uid number in db for folder
       db_folder.update(last_highest_uid_number: new_uid_numbers.last)
     end
   end
 
-  def fetch_imap_msg(uid_num)
+  def search_folder(folder, search_term = 'unsubscribe')
+    last_highest_uid_number = folder.last_highest_uid_number + 1
+    @imap.uid_search([
+                       'UID', "#{last_highest_uid_number}:#{MAX_INT}",
+                       'TEXT', search_term,
+                       'SINCE', 1.year.ago.strftime('%-d-%b-%Y')
+                     ])
+  end
+
+  def fetch_msg(uid_num)
     imap_msg = @imap.uid_fetch(uid_num, 'RFC822')[0].attr['RFC822']
     parsed_imap_msg = Mail.read_from_string(imap_msg)
     parsed_body = parse_msg_body(parsed_imap_msg)
     {
-      body: parsed_body, from: parsed_imap_msg.from.first,
-      subject: parsed_imap_msg.subject, date: parsed_imap_msg.date
+      body: parsed_body, sender_email: parsed_imap_msg.from.first,
+      subject: parsed_imap_msg.subject, received_at: parsed_imap_msg.date
     }
+  end
+
+  def save_msg(folder_id, uid_num, msg_params)
+    db_msg = Message.find_or_create_by(
+      folder_id: folder_id, uid_number: uid_num
+    )
+    db_msg.update(msg_params)
   end
 
   def examine_folder(imap_folder_name)
@@ -61,24 +80,10 @@ class ImapSync
     false
   end
 
-  def save_msg(folder_id, uid_num, msg_params)
-    msg = Message.find_or_create_by(folder_id: folder_id, uid_number: uid_num)
-    msg.update(msg_params)
-  end
-
-  def search_emails(folder, search_term = 'unsubscribe')
-    last_highest_uid_number = folder.last_highest_uid_number + 1
-    @imap.uid_search([
-                       'UID', "#{last_highest_uid_number}:#{MAX_INT}",
-                       'TEXT', search_term,
-                       'SINCE', 1.year.ago.strftime('%-d-%b-%Y')
-                     ])
-  end
-
-  private
-
-  def analyze_msg(subject, body, time_received)
+  def analyze_and_extract(subject, body, time_received)
     body = body.downcase
+    # extracted_datetime is Rails datetime col which maps to PG timestamp
+    # Rails converts this from/to Time UTC when reading/writing to PG
     datetime = extract_relevant_datetime_from_subject(subject, time_received)
 
     if datetime.present?
@@ -91,6 +96,8 @@ class ImapSync
       'Informational'
     end
   end
+
+  private
 
   def extract_relevant_datetime_from_subject(subject, time_received)
     time_till_expiration = subject.downcase.scan(/(\d+ hour|\d+ day)/)
@@ -120,7 +127,7 @@ class ImapSync
   def parse_msg_body(mail)
     mail.decoded
   rescue NoMethodError => e
-    # This is a bug in mail gem. Calling decoded should parse body to UTF8
+    # Due to bug in mail gem. Calling decoded should always parse body to UTF8
     if e.message == 'Can not decode an entire message, try calling #decoded '\
       'on the various fields and body or parts if it is a multipart message.'
       mail.body.decoded
