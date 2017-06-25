@@ -125,14 +125,10 @@ class ImapSync
   end
 
   def parse_msg_body(mail)
-    mail.decoded
-  rescue NoMethodError => e
-    # Due to bug in mail gem. Calling decoded should always parse body to UTF8
-    if e.message == 'Can not decode an entire message, try calling #decoded '\
-      'on the various fields and body or parts if it is a multipart message.'
+    if mail.multipart?
       mail.body.decoded
     else
-      raise e
+      mail.decoded
     end
   end
 end
