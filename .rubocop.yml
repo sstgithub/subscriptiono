@@ -1787,11 +1787,23 @@ Metrics/LineLength:
   Exclude:
     - 'spec/**/*'
 
+Metrics/AbcSize:
+  Exclude:
+    - 'spec/**/*'
+
+
+
 AllCops:
   Exclude:
     - 'spec/*'
     - 'bin/*'
     - 'config/*'
+    - 'config/environments/*'
+    - 'config/initializers/*'
     - 'db/*'
+    - 'db/**/*'
+    - 'Gemfile'
+    - 'Rakefile'
+    - 'app/views/**/*.json.jbuilder'
   Include:
     - 'config/routes.rb'

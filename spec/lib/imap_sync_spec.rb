@@ -145,7 +145,7 @@ RSpec.describe 'ImapSync' do
       @mail.body = 'Nothing to see here'
       net_imap_init_and_auth
 
-      message_params = {uid_number: 51, folder_id: @folder.id}
+      message_params = { uid_number: 51, folder_id: @folder.id }
       expect(Message).to receive(:find_or_create_by).with(message_params).and_return(create(:message, message_params))
 
       imap_sync = ImapSync.new(@user)
@@ -161,6 +161,7 @@ RSpec.describe 'ImapSync' do
   def net_imap_init_and_auth(imap = double('imap'))
     allow(Net::IMAP).to receive(:new).and_return(imap)
     allow(imap).to receive(:authenticate)
-    allow(imap).to receive(:list).with('', '*').and_return([{ name: 'INBOX' }, { name: 'ALL MAIL' }])
+    imap_folders = [Net::IMAP::MailboxList.new([:Hasnochildren], '/', 'INBOX'), Net::IMAP::MailboxList.new([:Hasnochildren], '/', 'ALL MAIL')]
+    allow(imap).to receive(:list).with('', '*').and_return(imap_folders)
   end
 end

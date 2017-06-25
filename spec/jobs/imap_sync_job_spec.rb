@@ -11,8 +11,8 @@ RSpec.describe ImapSyncJob, type: :job do
 
   it 'performs imap sync and requeues job for tomorrow' do
     imap_sync = double('imap_sync')
-    expect(ImapSync).to receive(:new).with(@user).and_return(imap_sync)
-    expect(imap_sync).to receive(:find_and_save_new_emails)
+    expect(ImapSync).to receive(:new).with(@user, ['[Gmail]/All Mail']).and_return(imap_sync)
+    expect(imap_sync).to receive(:sync_new_emails)
     ImapSyncJob.perform_now(@user.id)
 
     expect(ImapSyncJob).to have_been_enqueued.with(@user.id).exactly(:once).at(1.day)
