@@ -50,7 +50,7 @@ class ImapSync
                      ])
   end
 
-  def fetch_msg(uid_num)
+  def fetch_imap_msg(uid_num)
     imap_msg = @imap.uid_fetch(uid_num, 'RFC822')[0].attr['RFC822']
     parsed_imap_msg = Mail.read_from_string(imap_msg)
     parsed_body = parse_msg_body(parsed_imap_msg)
