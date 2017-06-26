@@ -26,6 +26,7 @@ RSpec.describe 'ImapSync' do
 
     ImapSync.new(user)
   end
+
   describe 'examine folder' do
     before do
       create(:folder, name: 'test folder', uid_validity_number: '123', user: @user)
@@ -145,6 +146,40 @@ RSpec.describe 'ImapSync' do
 
       expect(category).to eq('Informational')
       expect(extracted_datetime).to be_blank
+    end
+  end
+
+  describe 'sync new messages' do
+    it 'iterates over each folder' do
+      net_imap_init_and_auth
+
+      imap_sync = ImapSync.new(@user)
+      db_folder = double('db_folder')
+
+      expect(imap_sync).to receive(:examine_folder).with('INBOX').and_return(db_folder)
+      expect(imap_sync).to receive(:examine_folder).with('ALL MAIL').and_return(db_folder)
+
+      expect(imap_sync).to receive(:search_folder).with(db_folder, 'unsubscribe').and_return([1, 2, 3]).twice
+      expect(imap_sync).to receive(:fetch_and_save_msgs_by_uid_nums).with([1, 2, 3]).twice
+      expect(db_folder).to receive(:update).with(last_highest_uid_number: 3).twice
+
+      imap_sync.sync_new_messages('unsubscribe')
+    end
+
+    it 'skips a non-responsive folder' do
+      net_imap_init_and_auth
+
+      imap_sync = ImapSync.new(@user)
+      db_folder = double('db_folder')
+
+      expect(imap_sync).to receive(:examine_folder).with('INBOX').and_return(false)
+      expect(imap_sync).to receive(:examine_folder).with('ALL MAIL').and_return(db_folder)
+
+      expect(imap_sync).to receive(:search_folder).with(db_folder, 'unsubscribe').and_return([1, 2, 3]).once
+      expect(imap_sync).to receive(:fetch_and_save_msgs_by_uid_nums).with([1, 2, 3]).once
+      expect(db_folder).to receive(:update).with(last_highest_uid_number: 3).once
+
+      imap_sync.sync_new_messages
     end
   end
 
