@@ -32,7 +32,8 @@ I used:
 
 ## Installation
 
-- Ruby ...
+- Ruby 2.4.1
+- Rails 5.1.0
 
 ## Usage
 

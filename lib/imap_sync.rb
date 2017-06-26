@@ -26,19 +26,23 @@ class ImapSync
       # Go to next folder if this one returns an IMAP NoResponseError
       next unless db_folder
       new_sorted_uid_nums = search_folder(db_folder, search_term)
-      new_sorted_uid_nums.each do |uid_num|
-        msg = fetch_imap_msg(uid_num)
-        # Get category & offer date, if any. Later this will get prices and
-        # names of products offered as well
-        msg[:category], msg[:extracted_datetime] = analyze_and_extract(
-          msg[:subject], msg[:body], msg[:received_at]
-        )
-
-        save_msg(db_folder.id, uid_num, msg)
-      end
+      fetch_and_save_msgs_by_uid_nums(new_sorted_uid_nums)
       # update last highest uid number in db for folder
       db_folder.update(last_highest_uid_number: new_sorted_uid_nums.last)
     end
+  end
+
+  def examine_folder(imap_folder_name)
+    @imap.examine(imap_folder_name)
+    uid_validity_number = @imap.responses['UIDVALIDITY'][-1]
+    Folder.find_or_create_by(
+      user: @user,
+      uid_validity_number: uid_validity_number,
+      name: imap_folder_name
+    )
+  rescue Net::IMAP::NoResponseError => e
+    Rails.logger.debug e.message
+    false
   end
 
   def search_folder(folder, search_term = 'unsubscribe')
@@ -48,6 +52,19 @@ class ImapSync
                        'TEXT', search_term,
                        'SINCE', 1.year.ago.strftime('%-d-%b-%Y')
                      ])
+  end
+
+  def fetch_and_save_msgs_by_uid_nums(new_sorted_uid_nums)
+    new_sorted_uid_nums.each do |uid_num|
+      msg = fetch_imap_msg(uid_num)
+      # Get category & offer date, if any. Later this will get prices and
+      # names of products offered as well
+      msg[:category], msg[:extracted_datetime] = analyze_and_extract(
+        msg[:subject], msg[:body], msg[:received_at]
+      )
+
+      save_msg(db_folder.id, uid_num, msg)
+    end
   end
 
   def fetch_imap_msg(uid_num)
@@ -65,19 +82,6 @@ class ImapSync
       folder_id: folder_id, uid_number: uid_num
     )
     db_msg.update(msg_params)
-  end
-
-  def examine_folder(imap_folder_name)
-    @imap.examine(imap_folder_name)
-    uid_validity_number = @imap.responses['UIDVALIDITY'][-1]
-    Folder.find_or_create_by(
-      user: @user,
-      uid_validity_number: uid_validity_number,
-      name: imap_folder_name
-    )
-  rescue Net::IMAP::NoResponseError => e
-    Rails.logger.debug e.message
-    false
   end
 
   def analyze_and_extract(subject, body, time_received)
