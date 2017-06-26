@@ -41,7 +41,7 @@ I used:
   - Login with your Google OAuth and the IMAP sync process will automatically begin. In a few hours you will see the latest received emails for all your subscriptions.
 
 
-##TODO
+## TODO
 
 - Allow user to signup with any email service and autoconfig IMAP sync (using login authentication)
 - Transfer messages to a "Subscriptiono" folder in user email once stored on Subscriptiono, so subscription messages don't distract user when they are viewing their inbox
