@@ -75,4 +75,7 @@ gem 'autoprefixer-rails'
 gem 'bourbon'
 gem 'neat'
 
+# code coverage
+gem 'simplecov', :require => false, :group => :test
+
 ruby '2.4.1'
