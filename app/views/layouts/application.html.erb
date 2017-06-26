@@ -14,6 +14,19 @@
 
     <% if user_signed_in? %>
       <%= link_to('Logout', destroy_user_session_path, method: :delete) %>
+    <% else %>
+      <div class="row">
+        <h4>If you don't want to use your own email, please feel free to try out this application with the test account credentials:</hr>
+      </div>
+      <div class="row">
+        <b>Account:</b> imaptime@gmail.com
+      </div>
+      <br>
+      <div class="row">
+        <b>Password:</b> testthisapp
+      </div>
+      <br>
+      <br>
     <% end %>
 
 
