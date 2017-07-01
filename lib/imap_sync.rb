@@ -26,7 +26,7 @@ class ImapSync
       # Go to next folder if this one returns an IMAP NoResponseError
       next unless db_folder
       new_sorted_uid_nums = search_folder(db_folder, search_term)
-      fetch_and_save_msgs_by_uid_nums(new_sorted_uid_nums)
+      fetch_and_save_msgs_by_uid_nums(db_folder.id, new_sorted_uid_nums)
       # update last highest uid number in db for folder
       db_folder.update(last_highest_uid_number: new_sorted_uid_nums.last)
     end
@@ -54,7 +54,7 @@ class ImapSync
                      ])
   end
 
-  def fetch_and_save_msgs_by_uid_nums(new_sorted_uid_nums)
+  def fetch_and_save_msgs_by_uid_nums(db_folder_id, new_sorted_uid_nums)
     new_sorted_uid_nums.each do |uid_num|
       msg = fetch_imap_msg(uid_num)
       # Get category & offer date, if any. Later this will get prices and
@@ -63,7 +63,7 @@ class ImapSync
         msg[:subject], msg[:body], msg[:received_at]
       )
 
-      save_msg(db_folder.id, uid_num, msg)
+      save_msg(db_folder_id, uid_num, msg)
     end
   end
 
